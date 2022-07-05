@@ -8,50 +8,48 @@ import hashlib
 @click.option('--dir', help='The person to greet.', required=True)
 def say(dir):
     print("Filtering now...")
-    for file in os.listdir(dir):
-        print(file)
-    get_hash(dir)
-    display()
+    print("\n")
+    copies = calculate_digests(dir)
+    display(copies)
 
 
-hash_map = {}
-copies = []
 ext = (".jpeg", ".png", ".py")
 
 
-def map_update(file, file_hash):
-    hash_map[file] = file_hash
-
-
-def check_for_double(file, file_hash):
-    if file_hash not in hash_map.values():
-        return True
-    elif file_hash in hash_map.values():
-        copies.append(file)
+def check_for_double(file, file_hash, digest_map, copies):
+    if file_hash not in digest_map.values():
         return False
+    elif file_hash in digest_map.values():
+        copies.append(file)
+        return True
 
 
-def get_hash(dir):
+def calculate_digests(dir):
+    digest_map = {}
+    copies = []
+    abs_directory = os.path.abspath(dir)
     for file in os.listdir(dir):
+        abs_file = os.path.join(abs_directory, file)
         if os.path.isdir(file):
-            pass
+            continue
         elif file.lower().endswith(ext):
-            print(file)
-            block_size = 32768
+            block_size = 1048
             file_hash = hashlib.md5()
-            with open(file, "rb") as f:
-                # for byte_block in iter(lambda: f.read(block_size),b""):
-                #     file_hash.update(byte_block)
+            with open(abs_file, "rb") as f:
                 chunk = f.read(block_size)
                 while chunk:
                     file_hash.update(chunk)
-                    if check_for_double(file, file_hash):
-                        map_update(file, file_hash.hexdigest())
+                    chunk = f.read(block_size)
+                if not check_for_double(file, file_hash.hexdigest(), digest_map, copies):
+                    digest_map[file] = file_hash.hexdigest()
+    return copies
 
 
-def display():
+def display(copies):
     print("Possible duplicate files are:")
-    print(copies)
+    for i in copies:
+        print(i)
+
 
 if __name__ == '__main__':
     say()
